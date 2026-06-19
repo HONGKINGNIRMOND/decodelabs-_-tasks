@@ -1,0 +1,296 @@
+## Postman Testing Guide
+
+### Setup
+
+1. Open Postman and create a new **Collection** called `Backend REST API`.
+2. Set the collection variable `baseUrl` to `http://localhost:3000`.
+3. For every `POST` / `PUT` / `PATCH` request, go to the **Body** tab → select **raw** → choose **JSON** from the dropdown.
+
+---
+
+## Sample Request / Response Examples
+
+### 1. Health Check
+
+**Request**
+```
+GET http://localhost:3000/
+```
+
+**Response** — `200 OK`
+```json
+{
+  "status": "ok",
+  "message": "Backend REST API is running",
+  "timestamp": "2025-06-13T00:00:00.000Z"
+}
+```
+
+---
+
+### 2. Get All Users
+
+**Request**
+```
+GET http://localhost:3000/api/users
+```
+
+**Response** — `200 OK`
+```json
+{
+  "status": "success",
+  "count": 2,
+  "data": [
+    {
+      "id": "a1b2c3d4-...",
+      "name": "Alice Johnson",
+      "email": "alice@example.com",
+      "age": 28,
+      "role": "admin",
+      "createdAt": "2024-01-15T00:00:00.000Z"
+    },
+    {
+      "id": "e5f6g7h8-...",
+      "name": "Bob Smith",
+      "email": "bob@example.com",
+      "age": 34,
+      "role": "user",
+      "createdAt": "2024-03-22T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+
+### 3. Get User by ID
+
+**Request**
+```
+GET http://localhost:3000/api/users/a1b2c3d4-...
+```
+> Replace `a1b2c3d4-...` with an actual UUID returned by the "Get All Users" call.
+
+**Response** — `200 OK`
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "a1b2c3d4-...",
+    "name": "Alice Johnson",
+    "email": "alice@example.com",
+    "age": 28,
+    "role": "admin",
+    "createdAt": "2024-01-15T00:00:00.000Z"
+  }
+}
+```
+
+**Error Response** — `404 Not Found`
+```json
+{
+  "status": "error",
+  "message": "User with id \"non-existent-id\" not found"
+}
+```
+
+---
+
+### 4. Create a User
+
+**Request**
+```
+POST http://localhost:3000/api/users
+Content-Type: application/json
+```
+
+**Body**
+```json
+{
+  "name": "Charlie Davis",
+  "email": "charlie@example.com",
+  "age": 22,
+  "role": "moderator"
+}
+```
+
+**Response** — `201 Created`
+```json
+{
+  "status": "success",
+  "message": "User created successfully",
+  "data": {
+    "id": "new-uuid-...",
+    "name": "Charlie Davis",
+    "email": "charlie@example.com",
+    "age": 22,
+    "role": "moderator",
+    "createdAt": "2025-06-13T00:00:00.000Z"
+  }
+}
+```
+
+**Validation Error** — `400 Bad Request`
+```json
+// Request body: { "name": "No Email" }
+{
+  "status": "error",
+  "message": "\"name\" and \"email\" are required fields"
+}
+```
+
+**Duplicate Email** — `409 Conflict`
+```json
+{
+  "status": "error",
+  "message": "A user with email \"alice@example.com\" already exists"
+}
+```
+
+---
+
+### 5. Full Update (Replace) a User
+
+**Request**
+```
+PUT http://localhost:3000/api/users/a1b2c3d4-...
+Content-Type: application/json
+```
+
+**Body** (all fields required for PUT)
+```json
+{
+  "name": "Alice Updated",
+  "email": "alice.updated@example.com",
+  "age": 29,
+  "role": "user"
+}
+```
+
+**Response** — `200 OK`
+```json
+{
+  "status": "success",
+  "message": "User updated successfully (full replace)",
+  "data": {
+    "id": "a1b2c3d4-...",
+    "name": "Alice Updated",
+    "email": "alice.updated@example.com",
+    "age": 29,
+    "role": "user",
+    "createdAt": "2024-01-15T00:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 6. Partial Update a User
+
+**Request**
+```
+PATCH http://localhost:3000/api/users/a1b2c3d4-...
+Content-Type: application/json
+```
+
+**Body** (only the fields you want to change)
+```json
+{
+  "age": 30
+}
+```
+
+**Response** — `200 OK`
+```json
+{
+  "status": "success",
+  "message": "User updated successfully (partial update)",
+  "data": {
+    "id": "a1b2c3d4-...",
+    "name": "Alice Johnson",
+    "email": "alice@example.com",
+    "age": 30,
+    "role": "admin",
+    "createdAt": "2024-01-15T00:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 7. Delete a User
+
+**Request**
+```
+DELETE http://localhost:3000/api/users/e5f6g7h8-...
+```
+
+**Response** — `200 OK`
+```json
+{
+  "status": "success",
+  "message": "User deleted successfully",
+  "data": {
+    "id": "e5f6g7h8-...",
+    "name": "Bob Smith",
+    "email": "bob@example.com",
+    "age": 34,
+    "role": "user",
+    "createdAt": "2024-03-22T00:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 8. Route Not Found
+
+**Request**
+```
+GET http://localhost:3000/api/products
+```
+
+**Response** — `404 Not Found`
+```json
+{
+  "status": "error",
+  "message": "Route not found – GET /api/products"
+}
+```
+
+---
+
+## Quick cURL Commands
+
+```bash
+# Health check
+curl http://localhost:3000/
+
+# Get all users
+curl http://localhost:3000/api/users
+
+# Filter by role
+curl http://localhost:3000/api/users?role=admin
+
+# Get user by ID (replace <ID>)
+curl http://localhost:3000/api/users/<ID>
+
+# Create user
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Charlie","email":"charlie@example.com","age":22,"role":"moderator"}'
+
+# Partial update
+curl -X PATCH http://localhost:3000/api/users/<ID> \
+  -H "Content-Type: application/json" \
+  -d '{"age":30}'
+
+# Full replace
+curl -X PUT http://localhost:3000/api/users/<ID> \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice Updated","email":"alice.new@example.com","age":29,"role":"user"}'
+
+# Delete user
+curl -X DELETE http://localhost:3000/api/users/<ID>
+```
+
+---
