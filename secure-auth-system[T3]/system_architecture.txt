@@ -1,0 +1,146 @@
+## System Architecture
+
+```mermaid
+graph TB
+    Client[Client / Postman / Frontend]
+    subgraph Express Server
+        Helmet[Helmet Security Headers]
+        CORS[CORS Middleware]
+        Morgan[Morgan Logger]
+        BodyParser[JSON Body Parser]
+    end
+    subgraph Routes
+        AuthRoutes[Auth Routes]
+        ProtectedRoutes[Protected Routes]
+    end
+    subgraph Middleware
+        Validate[Input Validator]
+        AuthMW[JWT Auth Middleware]
+        RoleMW[Role Restriction]
+    end
+    subgraph Controllers
+        Register[Register Controller]
+        Login[Login Controller]
+        Dashboard[Dashboard Controller]
+        Profile[Profile Controller]
+        Admin[Admin Controller]
+    end
+    subgraph Data Layer
+        User[User Model / Sequelize]
+        MySQL[(MySQL Database)]
+    end
+    subgraph Security
+        Argon2[Argon2id Hashing]
+        JWT[JWT Sign / Verify]
+    end
+
+    Client --> Helmet --> CORS --> Morgan --> BodyParser
+    BodyParser --> AuthRoutes
+    BodyParser --> ProtectedRoutes
+    AuthRoutes --> Validate --> Register
+    AuthRoutes --> Validate --> Login
+    ProtectedRoutes --> AuthMW --> Dashboard
+    AuthMW --> Profile
+    AuthMW --> RoleMW --> Admin
+    Register --> Argon2
+    Register --> JWT
+    Login --> Argon2
+    Login --> JWT
+    AuthMW --> JWT
+    Register --> User
+    Login --> User
+    AuthMW --> User
+    User --> MySQL
+```
+
+## Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Express Server
+    participant MW as Auth Middleware
+    participant DB as MySQL
+
+    rect rgb(230, 245, 255)
+        Note over C,DB: Registration
+        C->>S: POST /api/auth/register (name, email, password)
+        S->>S: Validate inputs (express-validator)
+        S->>DB: Check if email exists
+        DB-->>S: No duplicate found
+        S->>S: Hash password with Argon2id
+        S->>DB: INSERT user into users table
+        DB-->>S: User created (id, name, email, role)
+        S->>S: Sign JWT (userId, email, role)
+        S-->>C: 201 Created { user, token }
+    end
+
+    rect rgb(230, 255, 230)
+        Note over C,DB: Login
+        C->>S: POST /api/auth/login (email, password)
+        S->>S: Validate inputs
+        S->>DB: SELECT user WHERE email = ?
+        DB-->>S: User record with hashed password
+        S->>S: Argon2id verify(password, hash)
+        S->>S: Sign JWT (userId, email, role)
+        S-->>C: 200 OK { user, token }
+    end
+
+    rect rgb(255, 245, 230)
+        Note over C,DB: Protected Route Access
+        C->>S: GET /api/dashboard (Bearer token)
+        S->>MW: Extract & verify JWT
+        MW->>DB: SELECT user WHERE id = ?
+        DB-->>MW: User record
+        MW->>MW: Attach user to req.user
+        MW->>S: Call next()
+        S-->>C: 200 OK { dashboard data }
+    end
+
+    rect rgb(255, 230, 230)
+        Note over C,DB: Admin Route (Non-Admin User)
+        C->>S: GET /api/admin (Bearer token, role=user)
+        S->>MW: Verify JWT & fetch user
+        MW->>MW: Check role: user !== admin
+        MW-->>C: 403 Forbidden
+    end
+```
+
+## Tech Stack
+
+```mermaid
+graph LR
+    Node[Node.js] --> Express[Express.js]
+    Express --> Helmet[Helmet]
+    Express --> CORS[CORS]
+    Express --> Morgan[Morgan]
+    Express --> EV[express-validator]
+    Node --> Sequelize[Sequelize ORM]
+    Sequelize --> MySQL[(MySQL)]
+    Node --> Argon2[Argon2id]
+    Node --> JWT[jsonwebtoken]
+```
+
+## Request Lifecycle
+
+```mermaid
+graph LR
+    A[Incoming Request] --> B[Helmet Headers]
+    B --> C[CORS Check]
+    C --> D[Morgan Logging]
+    D --> E[Parse JSON Body]
+    E --> F{Route Type}
+    F -->|/api/auth/*| G[Validate Input]
+    F -->|/api/dashboard, profile| H[JWT Auth Middleware]
+    F -->|/api/admin| I[JWT Auth + Role Check]
+    G --> J[Auth Controller]
+    H --> K[Protected Controller]
+    I --> L[Admin Controller]
+    J --> M[Send Response]
+    K --> M
+    L --> M
+    M --> N{Error?}
+    N -->|Yes| O[Global Error Handler]
+    N -->|No| P[JSON Response to Client]
+    O --> P
+```
