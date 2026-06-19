@@ -1,21 +1,5 @@
 # Backend REST API
-
-A clean, well-commented **Express.js** REST API that demonstrates backend fundamentals suitable for an industrial-training project.
-
----
-
-## Table of Contents
-
-1. [Project Structure](#project-structure)
-2. [REST Principles](#rest-principles)
-3. [Installation](#installation)
-4. [Running the Server](#running-the-server)
-5. [API Endpoints](#api-endpoints)
-6. [Postman Testing Guide](#postman-testing-guide)
-7. [Sample Request / Response Examples](#sample-request--response-examples)
-8. [Sample Output](#sample-output)
-
----
+TASK 1: Build a RESTful API using Node.js and Express that supports CRUD operations for a simple resource (e.g., users, products, etc.). The API should follow REST principles, including proper HTTP methods, status codes, and URL structures.
 
 ## Project Structure
 
